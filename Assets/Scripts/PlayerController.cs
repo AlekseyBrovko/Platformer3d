@@ -15,6 +15,12 @@ public class PlayerController : MonoBehaviour
     public float rotateSpeed;
     public Animator anim;
     public bool isJumping = false;
+    public bool isKnocking;
+    public float knockBackLength = 0.5f;
+    private float knockBackCounter;
+    public Vector2 knockBackPower;
+    public GameObject[] playerPieces;
+    public float bounceForce = 8f;
 
     private void Awake()
     {
@@ -33,15 +39,41 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        PlayerMove();
-        PlayerJump();
+        if (!isKnocking)
+        {
+            PlayerMove();
+            PlayerJump();
+        }
+
+        if(isKnocking)
+        {
+            knockBackCounter -= Time.deltaTime;
+
+            float yStore = moveDirection.y;
+            moveDirection = playerModel.transform.forward * -knockBackPower.x;
+            moveDirection.y = yStore;
+
+            if(charController .isGrounded)
+            {
+                moveDirection.y = 0f;
+            }
+
+            moveDirection.y += Physics.gravity.y * Time.deltaTime * gravityScale;
+
+            charController.Move(moveDirection * Time.deltaTime);
+
+            if (knockBackCounter<=0)
+            {
+                isKnocking = false;
+            }
+        }
 
         anim.SetFloat("Speed", Mathf.Abs(moveDirection.x) + Mathf.Abs(moveDirection.z));
         anim.SetBool("Grounded", charController.isGrounded);
     }
 
     private void PlayerMove()
-    {
+    {       
         float yStore = moveDirection.y;
         //moveDirection = new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical"));
         moveDirection = (transform.forward * Input.GetAxisRaw("Vertical")) + (transform.right * Input.GetAxisRaw("Horizontal"));
@@ -87,6 +119,21 @@ public class PlayerController : MonoBehaviour
         {
             moveDirection.y = 0f;
         }
+    }
+
+    public void KnockBack()
+    {
+        isKnocking = true;
+        knockBackCounter = knockBackLength;
+        Debug.Log("KnockBack");
+        moveDirection.y = knockBackPower.y;
+        charController.Move(moveDirection * Time.deltaTime);
+    }
+
+    public void Bounce()
+    {
+        moveDirection.y = bounceForce;
+        charController.Move(moveDirection * Time.deltaTime);
     }
 }
 
